@@ -15,33 +15,19 @@ import sys
 import time
 import socket
 
-import numpy as np
+#import numpy as np
 import sounddevice as sd
+import ntplib as ntp
 
 import Packets
+import Util
+import Sender
 
 TIME_TRAVEL = 25 # How long we wait to play back audio we recieve, in milliseconds
 SILENCE_DISTANCE = 10 # The farthest a player can be and still be heard (this is the default, the actual value is loaded from the server)
 PEAK_DISTANCE = 3 # How close a player must be to be heard at the maximum volume (this is the default, the actual value is loaded from the server)
 
-def send(connection, data, address):
-    total = connection.sendto(data[0], address)
-    total += connection.sendto(data[1], address)
-    if total < len(data[0]) + len(data[1]):
-        return False
-    return True
 
-def receive(connection, expectedAddress):
-    data, address = (None, None)
-    while address != expectedAddress:
-        data, address = connection.recvfrom(Packets.HEADER_LEN)
-    header = Packets.Header.unpack(data)
-    data, address = (None, None)
-    while address != expectedAddress:
-        data, address = connection.recvfrom(header.size)
-    packet = Packets.PACKET_TYPE_TABLE[header.ty].unpack(header, data)
-    return packet
-    
 
 if NAME != None:
     pass
@@ -97,32 +83,33 @@ else:
 For example, change the line `PORT = None` to `PORT = 12345'`.", file=sys.stderr)
     print("Make sure that the port you enter matches your host server's port, or else this program will not be able to connect to the server", file=sys.stderr)
     print("Resuming execution, defaulting port to 48984", file=sys.stderr)
-          
+
+offset = 0
+
+try:
+    offset = ntp.NTPClient().request("pool.ntp.org").offset
+except ntp.NTPException:
+    print("Could not sync time with time server, proceeding without a synchronised time", file=sys.stderr)
+
 connection = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 address = (IP, PORT)
 
 first = Packets.Connect(NAME)
 
-while not send(connection, first.pack(), address):
+while not Util.send(connection, first.pack(), address):
     pass
 
-response = receive(connection, address)
+#Util.send(connection, first.pack(), address)
+
+response = Util.receive(connection, address)
 
 response.setGUID()
 
 SILENCE_DISTANCE = response.silenceDistance
 PEAK_DISTANCE = response.peakDistance
 
-#header = Packets.Packet(connection.recv(Packets.HEADER_LEN))
+sender = Sender.Sender(connection, address, offset)
+sender.start()
 
-t = np.linspace(0, 3, 3 * 44100, False)
-
-audio1 = np.sin(440 * t * 2 * np.pi)
-
-audio2 = np.sin(660 * t * 2 * np.pi)
-
-sd.play(audio1, 44100)
-
-time.sleep(1)
-
-sd.play(audio2, 44100)
+with sd.RawInputStream(samplerate=Sender.SF, blocksize=Sender.BS, dtype='int16', channels=1, callback=Sender.callback):
+    sd.sleep(5500)
