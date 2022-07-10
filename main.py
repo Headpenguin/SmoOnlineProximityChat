@@ -22,12 +22,7 @@ import ntplib as ntp
 import Packets
 import Util
 import Sender
-
-TIME_TRAVEL = 25 # How long we wait to play back audio we recieve, in milliseconds
-SILENCE_DISTANCE = 10 # The farthest a player can be and still be heard (this is the default, the actual value is loaded from the server)
-PEAK_DISTANCE = 3 # How close a player must be to be heard at the maximum volume (this is the default, the actual value is loaded from the server)
-
-
+import Receiver
 
 if NAME != None:
     pass
@@ -105,11 +100,15 @@ response = Util.receive(connection, address)
 
 response.setGUID()
 
-SILENCE_DISTANCE = response.silenceDistance
-PEAK_DISTANCE = response.peakDistance
+Util.SILENCE_DISTANCE = response.silenceDistance
+Util.PEAK_DISTANCE = response.peakDistance
 
 sender = Sender.Sender(connection, address, offset)
 sender.start()
 
-with sd.RawInputStream(samplerate=Sender.SF, blocksize=Sender.BS, dtype='int16', channels=1, callback=Sender.callback):
-    sd.sleep(5500)
+receiver = Receiver.Receiver(connection, address, offset)
+receiver.start()
+
+with sd.RawInputStream(samplerate=Util.SF, blocksize=Util.BS, dtype='int16', channels=1, callback=Sender.callback):
+    with sd.OutputStream(samplerate=Util.SF, blocksize=Util.BS, dtype='int16', channels=1, callback=Receiver.callback):
+        time.sleep(5500)

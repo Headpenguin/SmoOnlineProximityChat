@@ -7,12 +7,6 @@ import opuslib as op
 import Packets
 import Util
 
-SF = 48000 # Sampling frequency in hertz
-FS = 20 # Frame size in milliseconds
-BS = int(SF*FS/1000) # Block size in short ints
-
-encoder = op.Encoder(SF, 1, op.APPLICATION_VOIP)
-
 micCV = Condition() # The lock on this is simultaneously for the condition variable and buf
 buf = b'' # Audio buffer
 
@@ -25,12 +19,16 @@ class Sender(Thread):
         self.offset = offset
 
         self.packet = Packets.Voice(0, b'')
+        self.encoder = op.Encoder(Util.SF, 1, op.APPLICATION_VOIP)
         
     def run(self):
         while(1):
             with micCV:
                 micCV.wait()
-                self.packet.reinit(time.time() + self.offset, buf)
+                if frames < Util.BS:
+                    data += b'\0' * (Util.BS - frames)
+                res = self.encoder.encode(data[:Util.BS], Util.BS)
+                self.packet.reinit(time.time() + self.offset, res)
                 data = self.packet.pack()
                 Util.send(self.connection, self.packet.pack(), self.address)
             
@@ -39,11 +37,8 @@ class Sender(Thread):
 def callback(data, frames, timestamp, status):
     global buf
     global micCV
-    if frames < BS:
-        data += b'\0' * (BS - frames)
-    res = encoder.encode(data[:BS], BS)
     if micCV.acquire(blocking=False):
-        buf = res
+        buf = data
         micCV.notify()
         micCV.release()
 
