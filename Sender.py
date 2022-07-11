@@ -33,11 +33,11 @@ class Sender(Thread):
             with micCV:
                 micCV.wait()
                 #res = self.encoder.encode(buf[:Util.BS], Util.BS)
-                res = buf[:Util.BS]
+                res = buf[:Util.BS * 2]
                 self.packet.reinit(currentFrame, res)
                 #data = self.packet.pack()
                 Util.send(self.connection, self.packet.pack(), self.address)
-                print(currentFrame)
+                #print(currentFrame)
             #print("Input at %s : %s" % (self.packet.getTimestamp(), self.packet.buf))
             
             
@@ -48,6 +48,7 @@ def callback(data, frames, timestamp, status):
     global currentFrame
     #global bufAdcTime
     currentFrame += frames
+    #print("callback %s" % currentFrame)
     if micCV.acquire(blocking=False):
         if frames < Util.BS:
             data += b'\0' * (Util.BS - frames)

@@ -50,7 +50,7 @@ class Receiver(Thread):
             with audioLock:
                 tmpBuf1, tmpBuf2 = Util.sliceBufRepeating((audioPacket.getFrame() + Util.TIME_TRAVEL) % Util.BUFFER_SIZE, len(audioMat), buf)
                 if len(tmpBuf2) == 0:
-                    #print(audioMat)
+                    #print(len(audioMat))
                     tmpBuf1 += np.minimum(32767 - tmpBuf1, audioMat)
                 else:
                     tmpBuf1 += np.minimum(32767 - tmpBuf1, audioMat[:len(tmpBuf1)])
@@ -75,6 +75,7 @@ def callback(outData, frames, timestamp, status):
         if lastFrame < currentFrame:
             outData[:] = np.zeros((frames, 1), dtype='int16')
         else:
+            #print("%s - %s" % (nowIdx, nowIdx + frames))
             tmpBuf1, tmpBuf2 = Util.sliceBufRepeating(nowIdx, frames, buf)
             if len(tmpBuf2) == 0:
                 outData[:] = tmpBuf1

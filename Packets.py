@@ -107,6 +107,7 @@ class Voice(Packet):
 
     def reinit(self, currentFrame, buf):
         Packet.reinit(self, Header(Packet.ClientGUID, PacketTypes.ChatVoice, len(buf) + 8))
+        #print(len(buf))
         self.currentFrame = currentFrame
         self.buf = buf
         self.distance = 0
