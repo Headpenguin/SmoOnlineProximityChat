@@ -3,8 +3,8 @@ from enum import *
 import uuid
 
 HEADER_FORMAT = '<2h'
-INIT_FORMAT = '<2f'
-VOICE_FORMAT = '<df'
+INIT_FORMAT = '<2fI'
+VOICE_FORMAT = '<If'
 
 HEADER_LEN = 20
 INIT_LEN = calcsize(INIT_FORMAT)
@@ -82,20 +82,21 @@ class Connect(Packet):
         return (Packet.pack(self), self.name.encode())
 
 class Init(Packet):
-    def __init__(self, silenceDistance, peakDistance):
-        Packet.__init__(self, Header(Packet.ClientGUID, PacketTypes.ChatInit, 8))
+    def __init__(self, silenceDistance, peakDistance, currentFrame):
+        Packet.__init__(self, Header(Packet.ClientGUID, PacketTypes.ChatInit, 12))
         self.silenceDistance = silenceDistance
         self.peakDistance = peakDistance
+        self.currentFrame = currentFrame
 
     @classmethod
     def unpack(cls, header, msg):
-        silenceDistance, peakDistance = unpack(INIT_FORMAT, msg)
-        obj = cls(silenceDistance, peakDistance)
+        silenceDistance, peakDistance, currentFrame = unpack(INIT_FORMAT, msg)
+        obj = cls(silenceDistance, peakDistance, currentFrame)
         obj.header = header
         return obj
 
     def pack(self):
-        return(Packet.pack(self), pack(INIT_FORMAT, self.silenceDistance, self.peakDistance))
+        return(Packet.pack(self), pack(INIT_FORMAT, self.silenceDistance, self.peakDistance, currentFrame))
 
     def setGUID(self):
         Packet.ClientGUID = self.header.GUID
@@ -104,24 +105,24 @@ class Voice(Packet):
     def __init__(self, time, buf):
         self.reinit(time, buf)
 
-    def reinit(self, time, buf):
-        Packet.reinit(self, Header(Packet.ClientGUID, PacketTypes.ChatVoice, len(buf) + 12))
-        self.time = time
+    def reinit(self, currentFrame, buf):
+        Packet.reinit(self, Header(Packet.ClientGUID, PacketTypes.ChatVoice, len(buf) + 8))
+        self.currentFrame = currentFrame
         self.buf = buf
         self.distance = 0
         
     @classmethod
     def unpack(cls, header, msg):
         #print(header.size)
-        time, distance = unpack(VOICE_FORMAT, msg[:12])
-        obj = cls(time, msg[12:])
+        currentFrame, distance = unpack(VOICE_FORMAT, msg[:8])
+        obj = cls(currentFrame, msg[8:])
         obj.header = header
         obj.distance = distance
         #print(obj.buf)
         return obj
 
     def pack(self):
-        return (Packet.pack(self), pack(VOICE_FORMAT, self.time, self.distance) + self.buf)
+        return (Packet.pack(self), pack(VOICE_FORMAT, self.currentFrame, self.distance) + self.buf)
 
     def getDistance(self):
         return self.distance
@@ -129,8 +130,8 @@ class Voice(Packet):
     def decode(self, decoder, frameSize):
         return decoder.decode(self.buf, frameSize)
 
-    def getTimestamp(self):
-        return self.time
+    def getFrame(self):
+        return self.currentFrame
 
 PACKET_TYPE_TABLE = {
     PacketTypes.Unknown: Packet,

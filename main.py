@@ -104,9 +104,13 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as connectionRecv, socket.
 
     Util.SILENCE_DISTANCE = response.silenceDistance
     Util.PEAK_DISTANCE = response.peakDistance
+    currentFrame = response.currentFrame
 
     sender = Sender.Sender(connectionSend, address, offset)
     sender.start()
+
+    Receiver.currentFrame = currentFrame
+    Sender.currentFrame = currentFrame
 
     receiver = Receiver.Receiver(connectionRecv, address, offset)
     receiver.start()

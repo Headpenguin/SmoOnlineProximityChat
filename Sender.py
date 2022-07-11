@@ -1,5 +1,4 @@
 from threading import *
-import time
 
 import sounddevice as sd
 import opuslib as op
@@ -9,7 +8,9 @@ import Util
 
 micCV = Condition() # The lock on this is simultaneously for the condition variable and buf
 buf = b'' # Audio buffer
+#bufAdcTime = 0
 kill = False # Mutating booleans is atomic in python
+currentFrame = 0
 
 class Sender(Thread):
     def __init__(self, connection, address, offset):
@@ -26,14 +27,17 @@ class Sender(Thread):
         global micCV
         global buf
         global kill
+        global currentFrame
+        #global bufAdcTime
         while not kill:
             with micCV:
-                micCV.wait()                
+                micCV.wait()
                 #res = self.encoder.encode(buf[:Util.BS], Util.BS)
                 res = buf[:Util.BS]
-                self.packet.reinit(time.time() + self.offset, res)
+                self.packet.reinit(currentFrame, res)
                 #data = self.packet.pack()
                 Util.send(self.connection, self.packet.pack(), self.address)
+                print(currentFrame)
             #print("Input at %s : %s" % (self.packet.getTimestamp(), self.packet.buf))
             
             
@@ -41,10 +45,14 @@ class Sender(Thread):
 def callback(data, frames, timestamp, status):
     global buf
     global micCV
+    global currentFrame
+    #global bufAdcTime
+    currentFrame += frames
     if micCV.acquire(blocking=False):
         if frames < Util.BS:
             data += b'\0' * (Util.BS - frames)
         buf = data
+        #bufAdcTime = timestamp.inputBufferAdcTime * 1000000000
         micCV.notify()
         micCV.release()
 
