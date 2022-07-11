@@ -9,6 +9,7 @@ import Util
 
 micCV = Condition() # The lock on this is simultaneously for the condition variable and buf
 buf = b'' # Audio buffer
+kill = False # Mutating booleans is atomic in python
 
 class Sender(Thread):
     def __init__(self, connection, address, offset):
@@ -22,15 +23,18 @@ class Sender(Thread):
         self.encoder = op.Encoder(Util.SF, 1, op.APPLICATION_VOIP)
         
     def run(self):
-        while(1):
+        global micCV
+        global buf
+        global kill
+        while not kill:
             with micCV:
-                micCV.wait()
-                if frames < Util.BS:
-                    data += b'\0' * (Util.BS - frames)
-                res = self.encoder.encode(data[:Util.BS], Util.BS)
+                micCV.wait()                
+                #res = self.encoder.encode(buf[:Util.BS], Util.BS)
+                res = buf[:Util.BS]
                 self.packet.reinit(time.time() + self.offset, res)
-                data = self.packet.pack()
+                #data = self.packet.pack()
                 Util.send(self.connection, self.packet.pack(), self.address)
+            #print("Input at %s : %s" % (self.packet.getTimestamp(), self.packet.buf))
             
             
 
@@ -38,6 +42,8 @@ def callback(data, frames, timestamp, status):
     global buf
     global micCV
     if micCV.acquire(blocking=False):
+        if frames < Util.BS:
+            data += b'\0' * (Util.BS - frames)
         buf = data
         micCV.notify()
         micCV.release()

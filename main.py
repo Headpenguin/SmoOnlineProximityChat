@@ -14,6 +14,7 @@ import os
 import sys
 import time
 import socket
+import threading
 
 #import numpy as np
 import sounddevice as sd
@@ -23,6 +24,7 @@ import Packets
 import Util
 import Sender
 import Receiver
+
 
 if NAME != None:
     pass
@@ -80,35 +82,61 @@ For example, change the line `PORT = None` to `PORT = 12345'`.", file=sys.stderr
     print("Resuming execution, defaulting port to 48984", file=sys.stderr)
 
 offset = 0
+kill = False # Mutating booleans is atomic in python
 
-try:
-    offset = ntp.NTPClient().request("pool.ntp.org").offset
-except ntp.NTPException:
-    print("Could not sync time with time server, proceeding without a synchronised time", file=sys.stderr)
+#try:
+    #offset = ntp.NTPClient().request("pool.ntp.org").offset
+#except ntp.NTPException:
+  #  print("Could not sync time with time server, proceeding without a synchronised time", file=sys.stderr)
 
-connection = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 address = (IP, PORT)
 
 first = Packets.Connect(NAME)
 
-while not Util.send(connection, first.pack(), address):
-    pass
+with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as connectionRecv, socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as connectionSend:
 
-#Util.send(connection, first.pack(), address)
+    while not Util.send(connectionRecv, first.pack(), address):
+        pass
+    #Util.send(connection, first.pack(), address)
 
-response = Util.receive(connection, address)
+    response = Util.receive(connectionRecv, address)
+    response.setGUID()
 
-response.setGUID()
+    Util.SILENCE_DISTANCE = response.silenceDistance
+    Util.PEAK_DISTANCE = response.peakDistance
 
-Util.SILENCE_DISTANCE = response.silenceDistance
-Util.PEAK_DISTANCE = response.peakDistance
+    sender = Sender.Sender(connectionSend, address, offset)
+    sender.start()
 
-sender = Sender.Sender(connection, address, offset)
-sender.start()
+    receiver = Receiver.Receiver(connectionRecv, address, offset)
+    receiver.start()
 
-receiver = Receiver.Receiver(connection, address, offset)
-receiver.start()
 
-with sd.RawInputStream(samplerate=Util.SF, blocksize=Util.BS, dtype='int16', channels=1, callback=Sender.callback):
-    with sd.OutputStream(samplerate=Util.SF, blocksize=Util.BS, dtype='int16', channels=1, callback=Receiver.callback):
-        time.sleep(5500)
+    def run():
+        with sd.RawInputStream(samplerate=Util.SF, blocksize=Util.BS, dtype='int16', channels=1, callback=Sender.callback), \
+            sd.OutputStream(samplerate=Util.SF, blocksize=Util.BS, dtype='int16', channels=1, callback=Receiver.callback):
+            while not kill:
+                time.sleep(5)
+
+    thread = threading.Thread(target=run)
+    thread.start()
+    #input("Type anything to exit\n")
+    time.sleep(9)
+    print("Closing...")
+
+    Sender.kill = True
+    Receiver.kill = True
+
+    sender.join(timeout=1)
+    if sender.is_alive():
+        print("Forcefully closing recording...")
+    receiver.join(timeout=1)
+    if receiver.is_alive():
+        print("Forcefully closing audio playback...")
+
+    kill = True
+    thread.join(timeout=5.5)
+    if thread.is_alive():
+        print("Forcefully killing this chat client...")
+
+

@@ -4,7 +4,7 @@ import uuid
 
 HEADER_FORMAT = '<2h'
 INIT_FORMAT = '<2f'
-VOICE_FORMAT = '<2f'
+VOICE_FORMAT = '<df'
 
 HEADER_LEN = 20
 INIT_LEN = calcsize(INIT_FORMAT)
@@ -36,6 +36,7 @@ class PacketTypes(ZeroIndex):
 class Header:
     def __init__(self, GUID, ty, size):
         self.GUID, self.ty, self.size = (GUID, ty, size)
+        #print(self.size)
         
     @classmethod
     def unpack(cls, msg):
@@ -104,21 +105,23 @@ class Voice(Packet):
         self.reinit(time, buf)
 
     def reinit(self, time, buf):
-        Packet.reinit(self, Header(Packet.ClientGUID, PacketTypes.ChatVoice, len(buf) + 8))
+        Packet.reinit(self, Header(Packet.ClientGUID, PacketTypes.ChatVoice, len(buf) + 12))
         self.time = time
         self.buf = buf
         self.distance = 0
         
     @classmethod
     def unpack(cls, header, msg):
-        time, distance = unpack(VOICE_FORMAT, msg[:8])
-        obj = cls(time, msg[8:])
+        #print(header.size)
+        time, distance = unpack(VOICE_FORMAT, msg[:12])
+        obj = cls(time, msg[12:])
         obj.header = header
         obj.distance = distance
+        #print(obj.buf)
         return obj
 
     def pack(self):
-        return(Packet.pack(self), pack(VOICE_FORMAT, self.time, self.distance) + self.buf)
+        return (Packet.pack(self), pack(VOICE_FORMAT, self.time, self.distance) + self.buf)
 
     def getDistance(self):
         return self.distance
