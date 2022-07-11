@@ -40,8 +40,8 @@ class Receiver(Thread):
             #print("Output at %s : %s" % (audioPacket.getTimestamp(), audioPacket.buf), file=sys.stderr)
             if audioPacket.getFrame() + Util.TIME_TRAVEL < currentFrame:
                 continue
-            #rawBuf = audioPacket.decode(self.decoder, Util.BS)
-            rawBuf = audioPacket.buf
+            rawBuf = audioPacket.decode(self.decoder, Util.BS)
+            #rawBuf = audioPacket.buf
             audioMat = np.ndarray((len(rawBuf)>>1, 1), dtype='int16', buffer=rawBuf)
             #print(audioMat)
             audioMatf32 = np.array(audioMat, dtype='f4')

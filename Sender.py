@@ -32,8 +32,8 @@ class Sender(Thread):
         while not kill:
             with micCV:
                 micCV.wait()
-                #res = self.encoder.encode(buf[:Util.BS], Util.BS)
-                res = buf[:Util.BS * 2]
+                res = self.encoder.encode(buf[:Util.BS*2], Util.BS)
+                #res = buf[:Util.BS * 2]
                 self.packet.reinit(currentFrame, res)
                 #data = self.packet.pack()
                 Util.send(self.connection, self.packet.pack(), self.address)
