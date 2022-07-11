@@ -115,10 +115,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as connectionRecv, socket.
     receiver = Receiver.Receiver(connectionRecv, address, offset)
     receiver.start()
 
+    def gigaCallback(indata, outdata, frames, timestamp, status):
+        Sender.callback(indata.tobytes(), frames, timestamp, status)
+        Receiver.callback(outdata, frames, timestamp, status)
 
     def run():
-        with sd.RawInputStream(samplerate=Util.SF, blocksize=Util.BS, dtype='int16', channels=1, callback=Sender.callback), \
-            sd.OutputStream(samplerate=Util.SF, blocksize=Util.BS, dtype='int16', channels=1, callback=Receiver.callback):
+        with sd.Stream(samplerate=Util.SF, blocksize=Util.BS, dtype='int16', channels=1, callback=gigaCallback):
             while not kill:
                 time.sleep(5)
 
