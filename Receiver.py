@@ -42,11 +42,12 @@ class Receiver(Thread):
                 continue
             rawBuf = audioPacket.decode(self.decoder, Util.BS)
             #rawBuf = audioPacket.buf
-            audioMat = np.ndarray((len(rawBuf)>>1, 1), dtype='int16', buffer=rawBuf)
+            audioMat = np.array(\
+                np.ndarray((len(rawBuf)>>1, 1), dtype='int16', buffer=rawBuf), \
+                dtype='f4')
             #print(audioMat)
             audioMatf32 = np.array(audioMat, dtype='f4')
             audioMatf32 *= (Util.clamp(audioPacket.getDistance(), Util.PEAK_DISTANCE, Util.SILENCE_DISTANCE) - Util.SILENCE_DISTANCE) * Util.VOLUME_SLOPE
-            audioMat = np.array(audioMatf32, dtype='int16')
             with audioLock:
                 tmpBuf1, tmpBuf2 = Util.sliceBufRepeating((audioPacket.getFrame() + Util.TIME_TRAVEL) % Util.BUFFER_SIZE, len(audioMat), buf)
                 if len(tmpBuf2) == 0:

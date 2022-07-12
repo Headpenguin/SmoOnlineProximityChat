@@ -14,6 +14,8 @@ SILENCE_DISTANCE = 10 # The farthest a player can be and still be heard (this is
 PEAK_DISTANCE = 3 # How close a player must be to be heard at the maximum volume (this is the default, the actual value is loaded from the server)
 VOLUME_SLOPE = 1/(PEAK_DISTANCE - SILENCE_DISTANCE) # Multiplication is faster than division
 BUFFER_SIZE = BS * 100 # Audio output buffer size (not latency)
+AUDIO_NORMALIZER = 1/(1 << 16)
+AUDIO_OFFSET = 0.5
 
 def send(connection, data, address):
     total = connection.sendto(data[0], address)

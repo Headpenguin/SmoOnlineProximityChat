@@ -3,7 +3,7 @@
 
 ''' |
     v''' 
-NAME = "Sussy 1" # Modify this to change your in-game name
+NAME = None # Modify this to change your in-game name
 IP = "127.0.0.1" # Modify this to set the server ip address
 PORT = None # Modify this to set the server port number
 '''^
@@ -126,8 +126,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as connectionRecv, socket.
 
     thread = threading.Thread(target=run)
     thread.start()
-    #input("Type anything to exit\n")
-    time.sleep(9)
+    input("Type anything to exit\n")
+    #time.sleep(9)
     print("Closing...")
 
     Sender.kill = True
@@ -145,4 +145,5 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as connectionRecv, socket.
     if thread.is_alive():
         print("Forcefully killing this chat client...")
 
+sys.exit(0)
 
