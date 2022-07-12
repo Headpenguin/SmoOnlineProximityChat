@@ -1,5 +1,4 @@
 from threading import *
-import sys
 
 import sounddevice as sd
 import opuslib as op
@@ -34,25 +33,20 @@ class Receiver(Thread):
         global kill
         while not kill:
             audioPacket = Util.receive(self.connection, self.address)
-            #print(audioPacket.header.size)
-            #print("Output at %s : %s" % (audioPacket.getTimestamp(), audioPacket.buf), file=sys.stderr)
             if audioPacket.getFrame() + Util.TIME_TRAVEL < currentFrame:
                 continue
             rawBuf = bytearray(audioPacket.decode_float(self.decoder, Util.BS))
-            #rawBuf = audioPacket.buf
             audioMat = np.ndarray((len(rawBuf)>>2, 1), dtype='float32', buffer=rawBuf)
             audioMat *= (Util.clamp(audioPacket.getDistance(), Util.PEAK_DISTANCE, Util.SILENCE_DISTANCE) - Util.SILENCE_DISTANCE) * Util.VOLUME_SLOPE
             
             with audioLock:
                 tmpBuf1, tmpBuf2 = Util.sliceBufRepeating((audioPacket.getFrame() + Util.TIME_TRAVEL) % Util.BUFFER_SIZE, len(audioMat), buf)
                 if len(tmpBuf2) == 0:
-                    #print(len(audioMat))
                     tmpBuf1 += audioMat
                 else:
                     tmpBuf1 += audioMat[:len(tmpBuf1)]
                     tmpBuf2 += audioMat[len(tmpBuf1):]
                 lastFrame = audioPacket.getFrame() + Util.TIME_TRAVEL
-                #print(lastFrame)
 
 def callback(outData, frames, timestamp, status):
     global lastFrame
@@ -61,7 +55,6 @@ def callback(outData, frames, timestamp, status):
     global lastCallback
     global currentFrame
     if audioLock.acquire(timeout=frames/Util.SF):
-        #print("%s %s" % (currentFrame, lastFrame))
         nowIdx = currentFrame % Util.BUFFER_SIZE
         tmpBuf1, tmpBuf2 = Util.sliceBufRepeating(lastCallback, (nowIdx - lastCallback) % Util.BUFFER_SIZE, buf)
         tmpBuf1[:] = np.zeros((len(tmpBuf1), 1), dtype='float32')
@@ -70,7 +63,6 @@ def callback(outData, frames, timestamp, status):
         if lastFrame < currentFrame:
             outData[:] = np.zeros((frames, 1), dtype='float32')
         else:
-            #print("%s - %s" % (nowIdx, nowIdx + frames))
             tmpBuf1, tmpBuf2 = Util.sliceBufRepeating(nowIdx, frames, buf)
             if len(tmpBuf2) == 0:
                 outData[:] = tmpBuf1

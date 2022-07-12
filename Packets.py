@@ -37,18 +37,12 @@ class PacketTypes(ZeroIndex):
 class Header:
     def __init__(self, GUID, ty, size):
         self.GUID, self.ty, self.size = (GUID, ty, size)
-        #print(self.size)
         
     @classmethod
     def unpack(cls, msg):
         ty, size = unpack(HEADER_FORMAT, msg[16:])
         GUID = uuid.UUID(bytes_le=msg[:16])
         return cls(GUID, ty, size)
-
-#    def unpackInPlace(self, msg):
-#       ty, size = unpack(HEADER_FORMAT, msg[16:])
-#       GUID = uuid.UUID(bytes_le=msg[:16])
-#       return self.__init__(GUID, ty, size)
 
     def pack(self):
         return  self.GUID.bytes_le + pack(HEADER_FORMAT, self.ty, self.size)
@@ -108,19 +102,16 @@ class Voice(Packet):
 
     def reinit(self, currentFrame, buf):
         Packet.reinit(self, Header(Packet.ClientGUID, PacketTypes.ChatVoice, len(buf) + 8))
-        #print(len(buf))
         self.currentFrame = currentFrame
         self.buf = buf
         self.distance = 0
         
     @classmethod
     def unpack(cls, header, msg):
-        #print(header.size)
         currentFrame, distance = unpack(VOICE_FORMAT, msg[:8])
         obj = cls(currentFrame, msg[8:])
         obj.header = header
         obj.distance = distance
-        #print(obj.buf)
         return obj
 
     def pack(self):
