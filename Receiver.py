@@ -13,19 +13,16 @@ currentFrame = 0
 lastFrame = 0
 lastCallback = 0
 buf = np.zeros((Util.BUFFER_SIZE, 1), dtype='float32')
-offset = 0
 kill = False # Mutating booleans is atomic in python
 
 class Receiver(Thread):
-    def __init__(self, connection, address, offsetLocal):
+    def __init__(self, connection, address):
         Thread.__init__(self)
 
         global firstTime
-        global offset
 
         self.connection = connection
         self.address = address
-        self.offset = offsetLocal
 
         self.decoder = op.Decoder(Util.SF, 1)
 
@@ -37,6 +34,7 @@ class Receiver(Thread):
         global kill
         while not kill:
             audioPacket = Util.receive(self.connection, self.address)
+            #print(audioPacket.header.size)
             #print("Output at %s : %s" % (audioPacket.getTimestamp(), audioPacket.buf), file=sys.stderr)
             if audioPacket.getFrame() + Util.TIME_TRAVEL < currentFrame:
                 continue
@@ -60,7 +58,6 @@ def callback(outData, frames, timestamp, status):
     global lastFrame
     global buf
     global audioLock
-    global offset
     global lastCallback
     global currentFrame
     if audioLock.acquire(timeout=frames/Util.SF):

@@ -8,6 +8,7 @@ VOICE_FORMAT = '<If'
 
 HEADER_LEN = 20
 INIT_LEN = calcsize(INIT_FORMAT)
+MAX_PACKET_SIZE = 2840 + 8 + HEADER_LEN
 
 class ZeroIndex(IntEnum):
     def _generate_next_value_(name, start, count, last_values):
@@ -79,7 +80,7 @@ class Connect(Packet):
         return obj
 
     def pack(self):
-        return (Packet.pack(self), self.name.encode())
+        return Packet.pack(self) + self.name.encode()
 
 class Init(Packet):
     def __init__(self, silenceDistance, peakDistance, currentFrame):
@@ -96,7 +97,7 @@ class Init(Packet):
         return obj
 
     def pack(self):
-        return(Packet.pack(self), pack(INIT_FORMAT, self.silenceDistance, self.peakDistance, currentFrame))
+        return Packet.pack(self) + pack(INIT_FORMAT, self.silenceDistance, self.peakDistance, currentFrame)
 
     def setGUID(self):
         Packet.ClientGUID = self.header.GUID
@@ -123,7 +124,7 @@ class Voice(Packet):
         return obj
 
     def pack(self):
-        return (Packet.pack(self), pack(VOICE_FORMAT, self.currentFrame, self.distance) + self.buf)
+        return Packet.pack(self) + pack(VOICE_FORMAT, self.currentFrame, self.distance) + self.buf
 
     def getDistance(self):
         return self.distance

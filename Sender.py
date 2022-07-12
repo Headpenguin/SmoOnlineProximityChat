@@ -13,12 +13,11 @@ kill = False # Mutating booleans is atomic in python
 currentFrame = 0
 
 class Sender(Thread):
-    def __init__(self, connection, address, offset):
+    def __init__(self, connection, address):
         Thread.__init__(self)
 
         self.connection = connection
         self.address = address
-        self.offset = offset
 
         self.packet = Packets.Voice(0, b'')
         self.encoder = op.Encoder(Util.SF, 1, op.APPLICATION_VOIP)
