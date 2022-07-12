@@ -32,7 +32,7 @@ class Sender(Thread):
         while not kill:
             with micCV:
                 micCV.wait()
-                res = self.encoder.encode(buf[:Util.BS*2], Util.BS)
+                res = self.encoder.encode_float(buf[:Util.BS*4], Util.BS)
                 #res = buf[:Util.BS * 2]
                 self.packet.reinit(currentFrame, res)
                 #data = self.packet.pack()
@@ -51,7 +51,7 @@ def callback(data, frames, timestamp, status):
     #print("callback %s" % currentFrame)
     if micCV.acquire(blocking=False):
         if frames < Util.BS:
-            data += b'\0' * (Util.BS - frames)
+            data += b'\0' * (Util.BS - frames) * 4
         buf = data
         #bufAdcTime = timestamp.inputBufferAdcTime * 1000000000
         micCV.notify()

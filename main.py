@@ -3,7 +3,7 @@
 
 ''' |
     v''' 
-NAME = "Sussy 1" # Modify this to change your in-game name
+NAME = None # Modify this to change your in-game name
 IP = "127.0.0.1" # Modify this to set the server ip address
 PORT = None # Modify this to set the server port number
 '''^
@@ -18,7 +18,6 @@ import threading
 
 #import numpy as np
 import sounddevice as sd
-import ntplib as ntp
 
 import Packets
 import Util
@@ -81,13 +80,7 @@ For example, change the line `PORT = None` to `PORT = 12345'`.", file=sys.stderr
     print("Make sure that the port you enter matches your host server's port, or else this program will not be able to connect to the server", file=sys.stderr)
     print("Resuming execution, defaulting port to 48984", file=sys.stderr)
 
-offset = 0
 kill = False # Mutating booleans is atomic in python
-
-#try:
-    #offset = ntp.NTPClient().request("pool.ntp.org").offset
-#except ntp.NTPException:
-  #  print("Could not sync time with time server, proceeding without a synchronised time", file=sys.stderr)
 
 address = (IP, PORT)
 
@@ -120,14 +113,14 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as connectionRecv, socket.
         Receiver.callback(outdata, frames, timestamp, status)
 
     def run():
-        with sd.Stream(samplerate=Util.SF, blocksize=Util.BS, dtype='int16', channels=1, callback=gigaCallback):
+        with sd.Stream(samplerate=Util.SF, blocksize=Util.BS, dtype='float32', channels=1, callback=gigaCallback):
             while not kill:
                 time.sleep(5)
 
     thread = threading.Thread(target=run)
     thread.start()
-    #input("Type anything to exit\n")
-    time.sleep(9)
+    input("Type anything to exit\n")
+    #time.sleep(9)
     print("Closing...")
 
     Sender.kill = True

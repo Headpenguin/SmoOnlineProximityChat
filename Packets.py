@@ -128,8 +128,8 @@ class Voice(Packet):
     def getDistance(self):
         return self.distance
 
-    def decode(self, decoder, frameSize):
-        return decoder.decode(self.buf, frameSize)
+    def decode_float(self, decoder, frameSize):
+        return decoder.decode_float(self.buf, frameSize)
 
     def getFrame(self):
         return self.currentFrame
